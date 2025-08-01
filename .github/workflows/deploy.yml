@@ -10,33 +10,38 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
-    env:
-      # Define your platform based on the repo name manually (or use GitHub vars if needed)
-      PLATFORM: hire  # Change this to: main, career, campus, etc.
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build the project
         run: npm run build
 
-      - name: Determine Environment Folder
-        id: env_path
+      - name: Extract platform and environment folder
+        id: vars
         run: |
-          if [[ "${{ github.ref_name }}" == "main" ]]; then
-            echo "S3_FOLDER=${{ env.PLATFORM }}/prod" >> $GITHUB_OUTPUT
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"        # e.g. hire-client
+          PLATFORM=$(echo "$REPO_NAME" | sed 's/-client$//')  # e.g. hire
+
+          if [[ "${GITHUB_REF##*/}" == "main" ]]; then
+            ENV_FOLDER="prod"
           else
-            echo "S3_FOLDER=${{ env.PLATFORM }}/dev" >> $GITHUB_OUTPUT
+            ENV_FOLDER="dev"
           fi
+
+          S3_PATH="$PLATFORM/$ENV_FOLDER"
+
+          echo "platform=$PLATFORM" >> $GITHUB_OUTPUT
+          echo "env_folder=$ENV_FOLDER" >> $GITHUB_OUTPUT
+          echo "s3_path=$S3_PATH" >> $GITHUB_OUTPUT
 
       - name: Deploy to S3
         uses: jakejarvis/s3-sync-action@master
@@ -48,4 +53,4 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           SOURCE_DIR: dist
-          DEST_DIR: ${{ steps.env_path.outputs.S3_FOLDER }}
+          DEST_DIR: ${{ steps.vars.outputs.s3_path }}
