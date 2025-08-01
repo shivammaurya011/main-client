@@ -1,0 +1,51 @@
+name: Deploy Vite App to S3
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      # Define your platform based on the repo name manually (or use GitHub vars if needed)
+      PLATFORM: hire  # Change this to: main, career, campus, etc.
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build the project
+        run: npm run build
+
+      - name: Determine Environment Folder
+        id: env_path
+        run: |
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "S3_FOLDER=${{ env.PLATFORM }}/prod" >> $GITHUB_OUTPUT
+          else
+            echo "S3_FOLDER=${{ env.PLATFORM }}/dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to S3
+        uses: jakejarvis/s3-sync-action@master
+        with:
+          args: --acl public-read --delete
+        env:
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          SOURCE_DIR: dist
+          DEST_DIR: ${{ steps.env_path.outputs.S3_FOLDER }}
