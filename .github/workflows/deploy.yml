@@ -31,7 +31,7 @@ jobs:
           fi
 
       - name: Build the project
-        run: npm run build
+        run: npm run build:dev
         env:
           NODE_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
 
