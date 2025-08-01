@@ -24,7 +24,6 @@ import VerifyOTP from './pages/auth/VerifyOTP';
 import ResetPassword from './pages/auth/ResetPassword';
 import Profile from './pages/auth/Profile';
 
-
 function App() {
   return (
     <Provider store={store}>
