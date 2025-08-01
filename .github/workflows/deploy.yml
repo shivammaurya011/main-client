@@ -23,13 +23,18 @@ jobs:
         run: npm ci
 
       - name: Build the project
-        run: npm run build:dev
+        run: |
+          if [[ "${GITHUB_REF##*/}" == "main" ]]; then
+            npm run build:prod
+          else
+            npm run build:dev
+          fi
 
       - name: Extract platform and environment folder
         id: vars
         run: |
-          REPO_NAME="${GITHUB_REPOSITORY##*/}"        # e.g. hire-client
-          PLATFORM=$(echo "$REPO_NAME" | sed 's/-client$//')  # e.g. hire
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"               # e.g., hire-client
+          PLATFORM=$(echo "$REPO_NAME" | sed 's/-client$//') # e.g., hire
 
           if [[ "${GITHUB_REF##*/}" == "main" ]]; then
             ENV_FOLDER="prod"
