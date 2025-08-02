@@ -1,10 +1,10 @@
 
 import React from 'react'
-
+import config from './config/env'
 function App() {
   return (
     <div className='text-4xl font-semibold text-amber-300 text-center my-40'>
-      Welcome Shivam Dev
+      Welcome Shivam {config.appName} {config.nodeEnv}
     </div>
   )
 }
