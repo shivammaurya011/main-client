@@ -71,7 +71,10 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Deploy to S3
-        run: aws s3 sync ./dist s3://${{ secrets.AWS_S3_BUCKET }}/${{ steps.vars.outputs.s3_path }} --delete --sse AES256
+        run: |
+          aws s3 sync ./dist s3://${{ secrets.AWS_S3_BUCKET }}/${{ steps.vars.outputs.s3_path }} --delete --sse AES256
+        env:
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
 
       - name: Invalidate CloudFront cache
         run: aws cloudfront create-invalidation --distribution-id ${{ steps.vars.outputs.cloudfront_id }} --paths "/*"
