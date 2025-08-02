@@ -9,13 +9,15 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # Update to latest version
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4 # Update to latest version
         with:
           node-version: '22'
 
@@ -48,7 +50,6 @@ jobs:
         run: |
           REPO_NAME="${GITHUB_REPOSITORY##*/}"
           PLATFORM=$(echo "$REPO_NAME" | sed 's/-client$//')
-
           if [[ "${GITHUB_REF##*/}" == "main" ]]; then
             ENV_FOLDER="prod"
             CLOUDFRONT_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_PROD }}"
@@ -56,31 +57,21 @@ jobs:
             ENV_FOLDER="dev"
             CLOUDFRONT_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_DEV }}"
           fi
-
           S3_PATH="$PLATFORM/$ENV_FOLDER"
-
           echo "platform=$PLATFORM" >> $GITHUB_OUTPUT
           echo "env_folder=$ENV_FOLDER" >> $GITHUB_OUTPUT
           echo "s3_path=$S3_PATH" >> $GITHUB_OUTPUT
           echo "cloudfront_id=$CLOUDFRONT_ID" >> $GITHUB_OUTPUT
 
-      - name: Deploy to S3
-        uses: jakejarvis/s3-sync-action@master
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4 # Use AWS official action
         with:
-          args: --delete
-        env:
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          SOURCE_DIR: dist
-          DEST_DIR: ${{ steps.vars.outputs.s3_path }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy to S3
+        run: aws s3 sync ./dist s3://${{ secrets.AWS_S3_BUCKET }}/${{ steps.vars.outputs.s3_path }} --delete
 
       - name: Invalidate CloudFront cache
-        uses: chetan/invalidate-cloudfront-action@v2
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          DISTRIBUTION: ${{ steps.vars.outputs.cloudfront_id }}
-          PATHS: '/*'
+        run: aws cloudfront create-invalidation --distribution-id ${{ steps.vars.outputs.cloudfront_id }} --paths "/*"
