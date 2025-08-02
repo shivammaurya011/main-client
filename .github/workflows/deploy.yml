@@ -23,17 +23,25 @@ jobs:
         run: npm ci
 
       - name: Determine environment and rename env file
+        id: envinfo
         run: |
           if [[ "${GITHUB_REF##*/}" == "main" ]]; then
             cp .env.production .env
+            echo "env=production" >> $GITHUB_OUTPUT
           else
             cp .env.development .env
+            echo "env=development" >> $GITHUB_OUTPUT
           fi
 
       - name: Build the project
-        run: npm run build:dev
+        run: |
+          if [[ "${GITHUB_REF##*/}" == "main" ]]; then
+            npm run build:prod
+          else
+            npm run build:dev
+          fi
         env:
-          NODE_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+          NODE_ENV: ${{ steps.envinfo.outputs.env }}
 
       - name: Extract platform, environment folder, and CloudFront ID
         id: vars
