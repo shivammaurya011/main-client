@@ -4,7 +4,7 @@ import config from './config/env'
 function App() {
   return (
     <div className='text-4xl font-semibold text-amber-300 text-center my-40'>
-      Welcome Shivam {config.appName} {config.nodeEnv} test4
+      Welcome Shivam {config.appName} {config.nodeEnv} test5
     </div>
   )
 }
