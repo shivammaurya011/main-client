@@ -35,7 +35,7 @@ jobs:
         env:
           NODE_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
 
-      - name: Extract platform and environment folder
+      - name: Extract platform, environment folder, and CloudFront ID
         id: vars
         run: |
           REPO_NAME="${GITHUB_REPOSITORY##*/}"
@@ -43,8 +43,10 @@ jobs:
 
           if [[ "${GITHUB_REF##*/}" == "main" ]]; then
             ENV_FOLDER="prod"
+            CLOUDFRONT_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_PROD }}"
           else
             ENV_FOLDER="dev"
+            CLOUDFRONT_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID_DEV }}"
           fi
 
           S3_PATH="$PLATFORM/$ENV_FOLDER"
@@ -52,6 +54,7 @@ jobs:
           echo "platform=$PLATFORM" >> $GITHUB_OUTPUT
           echo "env_folder=$ENV_FOLDER" >> $GITHUB_OUTPUT
           echo "s3_path=$S3_PATH" >> $GITHUB_OUTPUT
+          echo "cloudfront_id=$CLOUDFRONT_ID" >> $GITHUB_OUTPUT
 
       - name: Deploy to S3
         uses: jakejarvis/s3-sync-action@master
@@ -71,5 +74,5 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
-          DISTRIBUTION: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+          DISTRIBUTION: ${{ steps.vars.outputs.cloudfront_id }}
           PATHS: '/*'
